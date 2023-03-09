@@ -6,7 +6,15 @@ from .util.led import Led
 
 
 class Facade:
-    def __init__(self):
+    __instance = None
+
+    def __new__(cls):
+        if cls.__instance is None:
+            cls.__instance = super().__new__(cls)
+            cls.__instance.__setup()
+        return cls.__instance
+
+    def __setup(self):
         self.__traffic_logger = Logger('logs/traffic.log')
         self.__config_logger  = Logger('logs/config.log')
         self.__car_logger     = Logger('logs/car-count.log')
