@@ -1,3 +1,4 @@
+from threading import Lock
 from .util.logger import Logger
 from .util.seven_seg import SevenSeg
 from .util.movement import MovementDetector
@@ -9,6 +10,10 @@ class Facade:
         self.__traffic_logger = Logger('logs/traffic.log')
         self.__config_logger  = Logger('logs/config.log')
         self.__car_logger     = Logger('logs/car-count.log')
+
+        self.__traffic_logger_lock = Lock()
+        self.__config_logger_lock  = Lock()
+        self.__car_logger_lock     = Lock()
 
         self.__sensor  = MovementDetector()
         self.__display = SevenSeg(16, 18, 15, 13, 11, 12, 10)
@@ -42,33 +47,38 @@ class Facade:
         return self.__sensor.found_movement()
 
     def log_config(self, msg):
-        self.__config_logger.append(msg)
+        with self.__config_logger_lock:
+            self.__config_logger.append(msg)
 
     def log_traffic(self, msg):
-        self.__traffic_logger.append(msg)
+        with self.__traffic_logger_lock:
+            self.__traffic_logger.append(msg)
 
     def log_car(self, color):
-        log = self.__car_logger.read()
-        cars = log.split('\n')
+        with self.__car_logger_lock:
+            log = self.__car_logger.read()
+            cars = log.split('\n')
 
-        if color == 'green':
-            index = 0
-        elif color == 'red':
-            index = 1
-        else:
-            index = 2
+            if color == 'green':
+                index = 0
+            elif color == 'red':
+                index = 1
+            else:
+                index = 2
 
-        tmp = int(cars[index]) + 1
-        cars[index] = str(tmp)
-        log = '\n'.join(cars)
-        self.__car_logger.write(log, False)
+            tmp = int(cars[index]) + 1
+            cars[index] = str(tmp)
+            log = '\n'.join(cars)
+            self.__car_logger.write(log, False)
 
     def read_config(self):
-        return self.__config_logger.read()
+        with self.__config_logger_lock:
+            return self.__config_logger.read()
 
     def read_traffic(self):
-        return self.__traffic_logger.read()
+        with self.__traffic_logger_lock:
+            return self.__traffic_logger.read()
 
     def read_cars(self):
-        return self.__car_logger.read()
-
+        with self.__car_logger_lock:
+            return self.__car_logger.read()
